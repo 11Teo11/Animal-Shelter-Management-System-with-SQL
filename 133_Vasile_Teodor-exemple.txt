@@ -1,0 +1,183 @@
+--CERERE 1 -> a)
+--Selectati codul animalului, numele acestuia si ultimul medicament administrat, respectiv mesajul  “Nu au fost administrate medicamente” pentru animalele 
+--care nu au primit niciun tratament, pentru animalele ce au fost adoptate din sediul 1 sau 2. 
+
+select a.cod_cip as "Cod animal", a.nume as "Nume animal",
+       nvl(( select m.denumire
+         from medicamente m
+         inner join retete r on m.cod_medicament = r.cod_medicament
+         inner join istoric_medical im on r.cod_angajat = im.cod_angajat 
+            and r.cod_cip = im.cod_cip 
+            and r.cod_procedura = im.cod_procedura 
+            and r.data_ef = im.data_ef
+         where im.cod_cip = a.cod_cip
+         order by r.data_ef desc
+         fetch first 1 rows only), 'Nu au fost administrate medicamente') as "Ultimul medicament"
+from animale a
+inner join istoric_adoptii ia on a.cod_cip = ia.cod_cip
+inner join notari n on ia.cod_angajat = n.cod_angajat
+inner join angajati an on n.cod_angajat = an.cod_angajat
+where an.numar_sediu in (1,2);
+
+     
+--CERERE 2 -> b), e) 
+--Selectati, pentru animalele nascute dupa anul 2019 si care au fost adoptate prin intermediul unui notar ce are codul de angajat 100, 106 sau 107, codul , 
+--numele acestuia, varsta sa in luni in ziua adoptiei, numele de familie al clientului si initiala prenumelui. Varsta animalelor trebuie pusa pe categorii 
+--astfel: pentru animalele mai mici de 6 luni, categoria “Pui”, pentru cele mai mici de 24 de luni, categoria “Tanar” si categoria “Adult” pentru cei mai 
+--mari de 24 de luni. 
+
+select a.cod_cip as CIP,
+       upper(a.nume) as "Nume animal",
+       initcap(c.nume) || ' ' || substr(c.prenume, 1,1 ) || '.' as "Nume client",
+       round(months_between(ia.data_adoptie, a.data_nastere)) as "Varsta in luni",
+       case
+            when months_between(ia.data_adoptie, a.data_nastere) < 6 then 'Pui'
+            when months_between(ia.data_adoptie, a.data_nastere) < 24 then 'Tanar'
+            else 'Adult' end as "Categorie varsta"
+from ( select * from istoric_adoptii where cod_angajat in (100, 106, 107)) ia
+inner join animale a on a.cod_cip = ia.cod_cip
+inner join clienti c on c.cod_client = ia.cod_client
+where extract(year from a.data_nastere) > 2019;
+
+
+
+--CERERE 3 -> c) 
+--Selectati numele, prenumele si numarul de sarcini indeplinite de fiecare medic veterinar ce a indeplinit mai multe sarcini ( efectuare de proceduri) decat 
+--media tuturor medicilor veterinari din adapost. 
+
+select nume, prenume, numar_sarcini
+from 
+    (select a.nume, a.prenume, count(*) as numar_sarcini
+     from angajati a
+     inner join medici_veterinari mv on a.cod_angajat = mv.cod_angajat
+     inner join istoric_medical im on a.cod_angajat = im.cod_angajat
+     group by a.nume, a.prenume)
+group by nume, prenume, numar_sarcini
+having numar_sarcini > 
+    (select avg(sarcini)
+     from ( select count(*) as sarcini
+            from angajati a
+            inner join medici_veterinari mv on a.cod_angajat = mv.cod_angajat
+            join istoric_medical im on a.cod_angajat = im.cod_angajat
+            group by a.cod_angajat));
+
+--CERERE 4 -> d)
+Selectati numele animalului, stadiul, data ( in format luna-an) ultimei reviste in care a aparut si statusul de promovare, cum urmeaza: daca nu a aparut in nicio revista atunci statusul este “Nepromovat”, daca a aparut intr-o singura revista, “Promovat ocazional”, iar daca a aparut in mai mult de o revista, “Promovat activ”. Selectati doar animalele care nu sunt in stadiul “Decedat”.  Sa se ordoneze dupa numarul de reviste in care au aparut. 
+
+select a.nume as "Nume animal", a.stadiu as "Stadiu",
+       nvl(to_char(max(r.data_aparitie), 'MM-YYYY'), 'Nu a aparut') as "Ultima aparitie",
+       decode(count(ia.numar),
+              0, 'Nepromovat',
+              1, 'Promovat ocazional',
+              'Promovat activ') as "Status promovare"
+from animale a
+left join istoric_aparitii ia on a.cod_cip = ia.cod_cip
+left join reviste r on ia.numar = r.numar
+where lower(a.stadiu) not like 'decedat' 
+group by a.nume, a.stadiu
+order by count(ia.numar);
+
+
+--CERERE 5 -> f)
+--Selectati codul, numele, prenumele si sediul angajatilor, care au cele mai multe sarcini indeplinite ( aparitii in istoricuri medicale pentru medicii 
+--veterinari, aparitii in istoricuri de custi pentru ingrijitori si aparitii in istoricuri de adoptie pentru notari) pe functia lor ( medic veterinar, 
+--ingrijitor sau notari) si sediul din care fac parte. 
+
+with angajati_sarcini as
+    ( select a.cod_angajat, a.nume, a.prenume, a.numar_sediu,
+      case
+        when mv.cod_angajat is not null then 'Medic veterinar'
+        when i.cod_angajat is not null then 'Ingrijitor'
+        when n.cod_angajat is not null then 'Notar'
+        end as functie,
+      count(*) as sarcini
+      from angajati a
+      left join medici_veterinari mv on a.cod_angajat = mv.cod_angajat
+      left join ingrijitori i on a.cod_angajat = i.cod_angajat
+      left join notari n on a.cod_angajat = n.cod_angajat
+      left join istoric_medical im on a.cod_angajat = im.cod_angajat
+      left join istoric_custi ic on a.cod_angajat = ic.cod_angajat
+      left join istoric_adoptii ia on a.cod_angajat = ia.cod_angajat
+      group by a.cod_angajat, a.nume, a.prenume, a.numar_sediu,
+               case
+                when mv.cod_angajat is not null then 'Medic veterinar'
+                when i.cod_angajat is not null then 'Ingrijitor'
+                when n.cod_angajat is not null then 'Notar'
+                end),
+                
+rang_sarcini as 
+    ( select cod_angajat, nume, prenume, numar_sediu, functie, sarcini, 
+             row_number() over(partition by functie, numar_sediu order by sarcini desc) as ord
+      from angajati_sarcini)
+
+select nume, prenume, functie, numar_sediu, sarcini
+from rang_sarcini
+order by numar_sediu, functie, sarcini;
+
+
+--ex 15
+--1
+--Selectatati numele si prenumele angajatilor, impreuna cu functia loc (medic veterinar, ingrijitor sau notar), orasul sediului in care lucreaza, numarul de 
+--animale de care s-au ocupat (unde este cazul) si data ultimei activitati ( aparitie in istoric custi pentru ingrijitori, aparitie in istoric medical 
+--pentru medici veterinari, respectiv aparitie in istoric adoptii pentru notari). Ordonati rezultatele 
+
+select a.nume || ' ' || a.prenume as "Nume angajat", s.oras as "Sediu",
+       case
+         when mv.cod_angajat is not null then 'Medic veterinar'
+         when i.cod_angajat is not null then 'Ingrijitor'
+         when n.cod_angajat is not null then 'Notar'
+       end as "Functie",
+       count(
+            case
+                when mv.cod_angajat is not null then im.data_ef
+                when i.cod_angajat is not null then ic.data_incepere
+                when n.cod_angajat is not null then ia.data_adoptie
+            end) as "Nr. sarcini",
+        max(nvl(im.data_ef, nvl(ic.data_incepere, ia.data_adoptie))) as "Ultima activitate"
+from angajati a
+left outer join medici_veterinari mv on a.cod_angajat = mv.cod_angajat
+left outer join ingrijitori i on a.cod_angajat = i.cod_angajat
+left outer join notari n on a.cod_angajat = n.cod_angajat
+left outer join istoric_medical im on a.cod_angajat = im.cod_angajat
+left outer join istoric_custi ic on a.cod_angajat = ic.cod_angajat
+left outer join istoric_adoptii ia on a.cod_angajat = ia.cod_angajat
+join sedii s on a.numar_sediu = s.numar_sediu
+group by a.nume, a.prenume, s.oras, mv.cod_angajat, i.cod_angajat, n.cod_angajat
+order by "Ultima activitate" desc nulls last;
+   
+   
+--2
+--Selectati codul si numele tuturor animalelor ce au efectuat toate procedurile. 
+
+select a.cod_cip, a.nume
+from animale a
+where not exists (
+    select p.cod_procedura
+    from proceduri p
+    where not exists (
+        select 1
+        from istoric_medical im
+        where im.cod_cip = a.cod_cip
+          and im.cod_procedura = p.cod_procedura
+    )
+);
+
+insert into istoric_medical values (100, 105, 1, to_date('01/01/2023','DD/MM/YYYY'));
+insert into istoric_medical values (100, 105, 2, to_date('01/02/2023','DD/MM/YYYY'));
+insert into istoric_medical values (100, 105, 3, to_date('01/03/2023','DD/MM/YYYY'));
+insert into istoric_medical values (100, 105, 4, to_date('01/04/2023','DD/MM/YYYY'));
+insert into istoric_medical values (100, 105, 5, to_date('01/05/2023','DD/MM/YYYY'));
+insert into istoric_medical values (100, 105, 6, to_date('01/06/2023','DD/MM/YYYY'));
+      
+--3
+--Selectati primii 2 angajati cu cel mai mare salariu din fiecare sediu. 
+
+with salarii_rank as (
+    select cod_angajat, nume, prenume, numar_sediu, salariu,
+           row_number() over (partition by numar_sediu order by salariu desc) as pozitie
+    from angajati
+)
+select cod_angajat, nume, prenume, numar_sediu, salariu
+from salarii_rank
+where pozitie <= 2
+order by numar_sediu, salariu desc;
