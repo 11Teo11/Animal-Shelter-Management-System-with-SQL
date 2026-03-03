@@ -480,3 +480,4 @@ insert into istoric_adoptii (cod_client, cod_cip, cod_angajat, data_adoptie)
 
 insert into istoric_adoptii (cod_client, cod_cip, cod_angajat, data_adoptie)
   values (104, 100, 107, to_date('01/06/2023', 'DD/MM/YYYY'));
+
