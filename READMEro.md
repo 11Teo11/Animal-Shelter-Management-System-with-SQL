@@ -16,9 +16,10 @@ Modelul propus permite:
 
 ## Structura proiectului
 
-- **`creare_inserare.txt`** – conține comenzile SQL pentru crearea tabelelor, definirea cheilor primare/străine, constrângeri, secvențe și inserarea datelor de test.
-- **`exemple.txt`** – include cereri SQL complexe (JOIN-uri, subcereri sincronizate/nesincronizate, funcții pe șiruri, funcții de grup, agregări, outer join, division, top-n etc.).
-- **`documentatie_proiect.docx`** – documentul teoretic complet, care descrie modelul conceptual, entitățile, atributele, relațiile și normalizarea până la FN5.
+- **`table_creation_data_population.sql`** – conține comenzile SQL pentru crearea tabelelor, definirea cheilor primare/străine, constrângeri, secvențe și inserarea datelor de test.
+- **`queries.sql`** – include cereri SQL complexe (JOIN-uri, subcereri sincronizate/nesincronizate, funcții pe șiruri, funcții de grup, agregări, outer join, division, top-n etc.).
+- **`Presentation.docx`** – documentul teoretic complet, care descrie modelul conceptual, entitățile, atributele, relațiile și normalizarea până la FN5.
+
 ---
 
 ## Modelul conceptual
@@ -50,7 +51,7 @@ Modelul de date se bazează pe următoarele entități principale:
 
 ## Cereri SQL implementate
 
-Fișierul `exemple.txt` include următoarele tipuri de interogări:
+Fișierul `queries.sql` include următoarele tipuri de interogări:
 
 - Subcereri sincronizate și nesincronizate (cu 3+ tabele)
 - Funcții pe șiruri și pe date calendaristice
