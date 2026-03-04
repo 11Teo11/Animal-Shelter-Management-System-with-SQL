@@ -22,6 +22,8 @@ The system allows for:
 
 ## Conceptual Model
 
+<img width="487" height="331" alt="Screenshot 2026-03-04 215802" src="https://github.com/user-attachments/assets/bd1887ab-3b00-4fa4-b36d-a25449ccc880" />
+
 The system is built around several key entities:
 
 * **Employee**: Includes sub-entities such as *Veterinarians*, *Caretakers*, and *Notaries*.
